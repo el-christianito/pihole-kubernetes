@@ -1,0 +1,69 @@
+# TODO: secret store, config maps
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pihole
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pihole
+  template:
+    metadata:
+      labels:
+        app: pihole
+    spec:
+      containers:
+      - name: pihole
+        image: pihole/pihole:latest
+        volumeMounts:
+          - name: pihole-config-volume
+            mountPath: /etc/pihole
+          - name: pihole-dnsmasq-volume
+            mountPath: /etc/dsnmasq.d
+        ports:
+        - containerPort: 53
+        - containerPort: 67
+        - containerPort: 80
+        env:
+        - name: TZ
+          value: 'Europe/Zurich'
+        - name: WEBPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: pihole-secrets
+              key: webpassword
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        livenessProbe:
+            httpGet:
+              path: /index.html # TODO: use proper access page?
+              port: 80
+            initialDelaySeconds: 15
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 1
+      volumes:
+      - name: pihole-config-volume
+        persistentVolumeClaim:
+          claimName: pihole-config-pvc
+      - name: pihole-dnsmasq-volume
+        persistentVolumeClaim:
+          claimName: pihole-dnsmasq-pvc
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: pihole-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: pihole
+  ports:
+  - port: 80
+    targetPort: 8080

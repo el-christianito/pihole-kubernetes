@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pihole-config-pv
+spec:
+  capacity:
+    storage: 5G
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  local:
+    path: /tmp/data/pihole/config # TODO: use real path
+  nodeAffinity:
+    required:
+      nodeSelectorTerms: # select Node where the local storage PV is created
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - minikube # only worker node we have here
+
+---     
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pihole-dnsmasq-pv
+spec:
+  capacity:
+    storage: 1G
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  local:
+    path: /tmp/data/pihole/dnsmasq # TODO: use real path
+  nodeAffinity:
+    required:
+      nodeSelectorTerms: # select Node where the local storage PV is created
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - minikube # only worker node we have here
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pihole-config-pvc
+spec:
+  volumeMode: Filesystem
+  volumeName: pihole-config-pv
+  accessModes:
+    - ReadWriteOnce
+    - ReadOnlyMany
+  storageClassName: local-storage
+  resources:
+    requests:
+      storage: 1G
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pihole-dnsmasq-pvc
+spec:
+  volumeMode: Filesystem
+  volumeName: pihole-dnsmasq-pv
+  accessModes:
+    - ReadWriteOnce
+    - ReadOnlyMany
+  storageClassName: local-storage
+  resources:
+    requests:
+      storage: 500M
